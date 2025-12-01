@@ -1,0 +1,20 @@
+port = 8080
+host = "0.0.0.0"
+service_name = "Korvatunturi"
+source_code = "https://github.com/zwsyscall/korvatunturi"
+cache_path = "./cache"
+
+ip_whitelist = ["10.0.0.0/8", "172.18.168.0/16", "127.0.0.1/8"]
+
+[ssl]
+enabled = false
+key = "None"
+cert = "None"
+
+[cache]
+in_memory_ttl = 30
+cache_cleanup_interval = 5
+on_disk_ttl = 60
+file_cleanup_interval = 10
+database_path = ":memory:"
+maximum_size = 200000000

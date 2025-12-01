@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{{ server_name }}</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: #f5f7ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            background:
+                radial-gradient(circle at 10% 20%, rgba(164, 212, 255, 0.35), transparent 60%),
+                radial-gradient(circle at 80% 0%, rgba(120, 255, 190, 0.35), transparent 55%),
+                linear-gradient(to bottom, #020616 0%, #041427 40%, #0b3146 70%, #122733 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .main {
+            position: relative;
+            z-index: 1;
+            max-width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .tagline {
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.25em;
+            opacity: 0.85;
+        }
+
+        .tagline a {
+            color: pink;
+        }
+
+        h1 {
+            display: inline-block;
+            font-size: clamp(2.8rem, 5vw, 4rem);
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .upload-card {
+            background: rgba(5, 10, 25, 0.8);
+            border-radius: 18px;
+            padding: 1.25rem 1.5rem;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            backdrop-filter: blur(10px);
+            max-width: 420px;
+            width: 100%;
+            text-align: left;
+        }
+
+        .upload-title {
+            font-size: 0.95rem;
+            margin-bottom: 0.75rem;
+            opacity: 0.9;
+        }
+
+        .field {
+            margin-bottom: 0.75rem;
+            font-size: 0.85rem;
+        }
+
+        .field label {
+            display: block;
+            margin-bottom: 0.25rem;
+            opacity: 0.9;
+        }
+
+        .field input[type="file"],
+        .field input[type="text"] {
+            width: 100%;
+            font: inherit;
+            padding: 0.35rem 0.5rem;
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            background: rgba(15, 23, 42, 0.8);
+            color: inherit;
+        }
+
+        .field input[type="text"]::placeholder {
+            color: rgba(148, 163, 184, 0.9);
+        }
+
+        .field-inline {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-size: 0.85rem;
+        }
+
+        .field-inline input[type="checkbox"] {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        .hint {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            margin-top: 0.15rem;
+        }
+
+        .upload-button {
+            margin-top: 0.5rem;
+            width: 100%;
+            border: none;
+            border-radius: 999px;
+            padding: 0.55rem 1rem;
+            font: inherit;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            cursor: pointer;
+            background: linear-gradient(135deg, #4cb3ff, #6fcbff);
+            color: #020617;
+            transition: opacity 0.15s ease, filter 0.15s ease;
+        }
+
+        .upload-button:hover:enabled {
+            filter: brightness(1.08);
+        }
+
+        .upload-button:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+
+        /* Status / progress UI */
+
+        .upload-status {
+            margin-top: 0.9rem;
+            padding-top: 0.7rem;
+            border-top: 1px solid rgba(148, 163, 184, 0.35);
+            font-size: 0.8rem;
+        }
+
+        .status-text {
+            opacity: 0.9;
+            margin-bottom: 0.4rem;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 0.45rem;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            overflow: hidden;
+            margin-bottom: 0.35rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: inherit;
+            background: linear-gradient(135deg, #4cb3ff, #6fcbff);
+            transition: width 0.15s ease-out;
+        }
+
+        .result-box {
+            margin-top: 0.5rem;
+            padding: 0.7rem 0.9rem;
+            background: rgba(10, 15, 30, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+
+        .result-link {
+            font-size: 0.78rem;
+            word-break: break-all;
+        }
+
+        .result-link a {
+            color: #6fcbff;
+            text-decoration: none;
+        }
+
+        .result-link a:hover {
+            text-decoration: underline;
+        }
+
+        .copy-button {
+            align-self: flex-start;
+            padding: 0.35rem 0.9rem;
+            font-size: 0.75rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: linear-gradient(135deg, #4cb3ff, #6fcbff);
+            color: #020617;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            transition: filter 0.15s ease;
+        }
+
+        .copy-button:hover {
+            filter: brightness(1.1);
+        }
+
+        .status-error {
+            color: #fca5a5;
+        }
+
+        .status-success {
+            color: #bbf7d0;
+        }
+
+        .snow,
+        .snow::before,
+        .snow::after {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            background-repeat: repeat;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+        }
+
+        .snow {
+            background-image:
+                radial-gradient(2px 2px at 10px 10px, rgba(255, 255, 255, 0.95), transparent),
+                radial-gradient(3px 3px at 80px 40px, rgba(255, 255, 255, 0.8), transparent),
+                radial-gradient(2px 2px at 140px 90px, rgba(255, 255, 255, 0.9), transparent),
+                radial-gradient(3px 3px at 200px 150px, rgba(255, 255, 255, 0.85), transparent),
+                radial-gradient(2px 2px at 260px 60px, rgba(255, 255, 255, 0.9), transparent);
+            background-size: 22rem 22rem;
+            background-position:
+                0 0,
+                30% 20%,
+                70% 40%,
+                10% 70%,
+                90% 10%;
+            opacity: 0.7;
+            animation-name: snowfallLayer1;
+            animation-duration: 20s;
+            animation-delay: 0s;
+        }
+
+        .snow::before {
+            background-image:
+                radial-gradient(2px 2px at 30px 30px, rgba(255, 255, 255, 0.95), transparent),
+                radial-gradient(3px 3px at 120px 80px, rgba(255, 255, 255, 0.9), transparent),
+                radial-gradient(2px 2px at 220px 50px, rgba(255, 255, 255, 0.8), transparent),
+                radial-gradient(3px 3px at 280px 140px, rgba(255, 255, 255, 0.9), transparent),
+                radial-gradient(2px 2px at 340px 100px, rgba(255, 255, 255, 0.85), transparent);
+            background-size: 26rem 26rem;
+            background-position:
+                10% 10%,
+                50% 0,
+                80% 30%,
+                20% 60%,
+                90% 80%;
+            opacity: 0.5;
+            animation-name: snowfallLayer2;
+            animation-duration: 33s;
+            animation-delay: -16.5s;
+        }
+
+        .snow::after {
+            background-image:
+                radial-gradient(2px 2px at 50px 60px, rgba(255, 255, 255, 0.8), transparent),
+                radial-gradient(3px 3px at 140px 20px, rgba(255, 255, 255, 0.75), transparent),
+                radial-gradient(2px 2px at 240px 110px, rgba(255, 255, 255, 0.85), transparent),
+                radial-gradient(3px 3px at 320px 40px, rgba(255, 255, 255, 0.8), transparent),
+                radial-gradient(2px 2px at 380px 160px, rgba(255, 255, 255, 0.8), transparent);
+            background-size: 30rem 30rem;
+            background-position:
+                0 20%,
+                40% 40%,
+                70% 10%,
+                15% 80%,
+                95% 50%;
+            opacity: 0.35;
+            animation-name: snowfallLayer3;
+            animation-duration: 46s;
+            animation-delay: -23s;
+        }
+
+        @keyframes snowfallLayer1 {
+            from {
+                background-position:
+                    0 0,
+                    30% 20%,
+                    70% 40%,
+                    10% 70%,
+                    90% 10%;
+            }
+
+            to {
+                background-position:
+                    0 22rem,
+                    30% calc(20% + 22rem),
+                    70% calc(40% + 22rem),
+                    10% calc(70% + 22rem),
+                    90% calc(10% + 22rem);
+            }
+        }
+
+        @keyframes snowfallLayer2 {
+            from {
+                background-position:
+                    10% 10%,
+                    50% 0,
+                    80% 30%,
+                    20% 60%,
+                    90% 80%;
+            }
+
+            to {
+                background-position:
+                    10% calc(10% + 26rem),
+                    50% 26rem,
+                    80% calc(30% + 26rem),
+                    20% calc(60% + 26rem),
+                    90% calc(80% + 26rem);
+            }
+        }
+
+        @keyframes snowfallLayer3 {
+            from {
+                background-position:
+                    0 20%,
+                    40% 40%,
+                    70% 10%,
+                    15% 80%,
+                    95% 50%;
+            }
+
+            to {
+                background-position:
+                    0 calc(20% + 30rem),
+                    40% calc(40% + 30rem),
+                    70% calc(10% + 30rem),
+                    15% calc(80% + 30rem),
+                    95% calc(50% + 30rem);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="snow"></div>
+    <main class="main">
+        <div>
+            <h1>{{ server_name }}</h1>
+            <div class="tagline">
+                Private, Temporary,
+                <a href="{{ source }}">Open-source</a>
+            </div>
+        </div>
+
+        <form id="upload-form" class="upload-card" method="POST" enctype="multipart/form-data">
+            <div class="upload-title">Upload a file</div>
+
+            <div class="field">
+                <label for="file">File</label>
+                <input id="file" name="file" type="file" required>
+                <div class="hint">Filename is taken from the selected file.</div>
+            </div>
+
+            <div class="field">
+                <label for="expires_in">Expires in</label>
+                <input id="expires_in" name="expires_in" type="text" placeholder="e.g. 7d, 12h, 3600">
+                <div class="hint">Will be sent as <code>expires_in</code> and interpreted by the server.</div>
+            </div>
+
+            <div class="field field-inline">
+                <input id="burn_after_read" name="burn_after_read" type="checkbox">
+                <label for="burn_after_read">Burn after read</label>
+            </div>
+
+            <button class="upload-button" type="submit" id="upload-button">Upload</button>
+
+            <div id="upload-status" class="upload-status" aria-live="polite" hidden>
+                <div id="status-text" class="status-text">Waiting to start upload.</div>
+                <div class="progress-track">
+                    <div id="progress-fill" class="progress-fill"></div>
+                </div>
+                <div id="result-box" class="result-box" hidden>
+                    <div id="result-link" class="result-link"></div>
+                    <button id="copy-button" class="copy-button" type="button">Copy</button>
+                </div>
+            </div>
+        </form>
+    </main>
+
+    <script>
+        (function () {
+            const form = document.getElementById('upload-form');
+            const fileInput = document.getElementById('file');
+            const expiresInput = document.getElementById('expires_in');
+            const burnInput = document.getElementById('burn_after_read');
+            const statusBox = document.getElementById('upload-status');
+            const statusText = document.getElementById('status-text');
+            const progressFill = document.getElementById('progress-fill');
+            const resultBox = document.getElementById('result-box');
+            const resultLink = document.getElementById('result-link');
+            const copyButton = document.getElementById('copy-button');
+            const uploadButton = document.getElementById('upload-button');
+
+            function resetStatus() {
+                statusBox.hidden = false;
+                statusText.textContent = 'Preparing upload…';
+                statusText.classList.remove('status-error', 'status-success');
+                progressFill.style.width = '0%';
+                resultBox.hidden = true;
+                resultLink.textContent = '';
+                copyButton.textContent = 'Copy';
+            }
+
+            function parseExpiresToSeconds(raw) {
+                if (!raw) return null;
+
+                raw = raw.trim().toLowerCase();
+                const regex = /^(\d+)(d|h|m|s)?$/;
+                const match = raw.match(regex);
+                if (!match) return null;
+
+                const value = parseInt(match[1], 10);
+                const unit = match[2];
+
+                switch (unit) {
+                    case 'd': return value * 86400;
+                    case 'h': return value * 3600;
+                    case 'm': return value * 60;
+                    case 's': return value;
+                    default: return value;
+                }
+            }
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                if (!fileInput.files.length) {
+                    alert('Please choose a file to upload.');
+                    return;
+                }
+
+                const file = fileInput.files[0];
+                const params = new URLSearchParams();
+
+                const parsedSeconds = parseExpiresToSeconds(expiresInput.value);
+                if (parsedSeconds !== null) {
+                    params.set('expires_in', parsedSeconds.toString());
+                }
+
+                params.set('filename', file.name);
+                params.set('burn_after_read', burnInput.checked ? 'true' : 'false');
+
+                const url = '{{ server_url }}/api/upload?' + params.toString();
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                resetStatus();
+                uploadButton.disabled = true;
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', url, true);
+
+                xhr.upload.addEventListener('progress', function (event) {
+                    if (event.lengthComputable) {
+                        const percent = Math.round((event.loaded / event.total) * 100);
+                        progressFill.style.width = percent + '%';
+                        statusText.textContent = 'Uploading… ' + percent + '%';
+                    } else {
+                        statusText.textContent = 'Uploading…';
+                    }
+                });
+
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === XMLHttpRequest.DONE) {
+                        uploadButton.disabled = false;
+
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            progressFill.style.width = '100%';
+                            statusText.textContent = 'Upload complete.';
+                            statusText.classList.add('status-success');
+
+                            const uuid = xhr.responseText.trim();
+                            const link = '{{ server_url }}/api/download/' + uuid;
+
+                            resultBox.hidden = false;
+                            resultLink.innerHTML =
+                                '<span>Download link:</span><br><a href="' + link + '">' + link + '</a>';
+
+                            copyButton.onclick = function () {
+                                navigator.clipboard.writeText(link).then(() => {
+                                    copyButton.textContent = 'Copied';
+                                    setTimeout(() => copyButton.textContent = 'Copy', 1500);
+                                }).catch(() => {
+                                    copyButton.textContent = 'Error';
+                                    setTimeout(() => copyButton.textContent = 'Copy', 1500);
+                                });
+                            };
+                        } else {
+                            statusText.textContent = 'Upload failed (HTTP ' + xhr.status + ').';
+                            statusText.classList.add('status-error');
+                        }
+                    }
+                };
+
+                xhr.onerror = function () {
+                    uploadButton.disabled = false;
+                    statusText.textContent = 'Network error during upload.';
+                    statusText.classList.add('status-error');
+                };
+
+                xhr.send(formData);
+            });
+        })();
+    </script>
+
+</body>
+
+</html>

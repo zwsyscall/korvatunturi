@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{{ server_name }}</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: #f5f7ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            background:
+                radial-gradient(circle at 10% 20%, rgba(164, 212, 255, 0.35), transparent 60%),
+                radial-gradient(circle at 80% 0%, rgba(120, 255, 190, 0.35), transparent 55%),
+                linear-gradient(to bottom, #020616 0%, #041427 40%, #0b3146 70%, #122733 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .main {
+            position: relative;
+            z-index: 1;
+            max-width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .tagline {
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.25em;
+            margin-bottom: 0.75rem;
+            opacity: 0.85;
+        }
+
+        .tagline a {
+            color: pink;
+        }
+
+        h1 {
+            display: inline-block;
+            font-size: clamp(2.8rem, 5vw, 4rem);
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            margin-bottom: 1.25rem;
+            text-align: center;
+        }
+
+        .snow,
+        .snow::before,
+        .snow::after {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            background-repeat: repeat;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+        }
+
+        .snow {
+            background-image:
+                radial-gradient(2px 2px at 10px 10px, rgba(255, 255, 255, 0.95), transparent),
+                radial-gradient(3px 3px at 80px 40px, rgba(255, 255, 255, 0.8), transparent),
+                radial-gradient(2px 2px at 140px 90px, rgba(255, 255, 255, 0.9), transparent),
+                radial-gradient(3px 3px at 200px 150px, rgba(255, 255, 255, 0.85), transparent),
+                radial-gradient(2px 2px at 260px 60px, rgba(255, 255, 255, 0.9), transparent);
+            background-size: 22rem 22rem;
+            background-position:
+                0 0,
+                30% 20%,
+                70% 40%,
+                10% 70%,
+                90% 10%;
+            opacity: 0.7;
+            animation-name: snowfallLayer1;
+            animation-duration: 20s;
+            animation-delay: 0s;
+        }
+
+        .snow::before {
+            background-image:
+                radial-gradient(2px 2px at 30px 30px, rgba(255, 255, 255, 0.95), transparent),
+                radial-gradient(3px 3px at 120px 80px, rgba(255, 255, 255, 0.9), transparent),
+                radial-gradient(2px 2px at 220px 50px, rgba(255, 255, 255, 0.8), transparent),
+                radial-gradient(3px 3px at 280px 140px, rgba(255, 255, 255, 0.9), transparent),
+                radial-gradient(2px 2px at 340px 100px, rgba(255, 255, 255, 0.85), transparent);
+            background-size: 26rem 26rem;
+            background-position:
+                10% 10%,
+                50% 0,
+                80% 30%,
+                20% 60%,
+                90% 80%;
+            opacity: 0.5;
+            animation-name: snowfallLayer2;
+            animation-duration: 33s;
+            animation-delay: -16.5s;
+        }
+
+        .snow::after {
+            background-image:
+                radial-gradient(2px 2px at 50px 60px, rgba(255, 255, 255, 0.8), transparent),
+                radial-gradient(3px 3px at 140px 20px, rgba(255, 255, 255, 0.75), transparent),
+                radial-gradient(2px 2px at 240px 110px, rgba(255, 255, 255, 0.85), transparent),
+                radial-gradient(3px 3px at 320px 40px, rgba(255, 255, 255, 0.8), transparent),
+                radial-gradient(2px 2px at 380px 160px, rgba(255, 255, 255, 0.8), transparent);
+            background-size: 30rem 30rem;
+            background-position:
+                0 20%,
+                40% 40%,
+                70% 10%,
+                15% 80%,
+                95% 50%;
+            opacity: 0.35;
+            animation-name: snowfallLayer3;
+            animation-duration: 46s;
+            animation-delay: -23s;
+        }
+
+        @keyframes snowfallLayer1 {
+            from {
+                background-position:
+                    0 0,
+                    30% 20%,
+                    70% 40%,
+                    10% 70%,
+                    90% 10%;
+            }
+
+            to {
+                background-position:
+                    0 22rem,
+                    30% calc(20% + 22rem),
+                    70% calc(40% + 22rem),
+                    10% calc(70% + 22rem),
+                    90% calc(10% + 22rem);
+            }
+        }
+
+        @keyframes snowfallLayer2 {
+            from {
+                background-position:
+                    10% 10%,
+                    50% 0,
+                    80% 30%,
+                    20% 60%,
+                    90% 80%;
+            }
+
+            to {
+                background-position:
+                    10% calc(10% + 26rem),
+                    50% 26rem,
+                    80% calc(30% + 26rem),
+                    20% calc(60% + 26rem),
+                    90% calc(80% + 26rem);
+            }
+        }
+
+        @keyframes snowfallLayer3 {
+            from {
+                background-position:
+                    0 20%,
+                    40% 40%,
+                    70% 10%,
+                    15% 80%,
+                    95% 50%;
+            }
+
+            to {
+                background-position:
+                    0 calc(20% + 30rem),
+                    40% calc(40% + 30rem),
+                    70% calc(10% + 30rem),
+                    15% calc(80% + 30rem),
+                    95% calc(50% + 30rem);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="snow"></div>
+    <main class="main">
+        <h1>{{ server_name }}</h1>
+        <div class="tagline">Private, Temporary, <a href="{{ source }}">Open-source</a></div>
+    </main>
+</body>
+
+</html>
