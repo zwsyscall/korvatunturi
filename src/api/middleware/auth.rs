@@ -101,7 +101,6 @@ where
                         Ok(res.map_into_left_body())
                     });
                 }
-                debug!("{}: not in whitelist", ip);
             }
         }
 
@@ -109,9 +108,7 @@ where
             let page = Forbidden { server_name: &data.0 };
             if let Ok(page) = page.render() {
                 return Box::pin(async move {
-                    warn!("{:#?}: Missing / invalid IP", remote_conn);
                     let (req, _pl) = req.into_parts();
-
                     let res = HttpResponse::build(StatusCode::FORBIDDEN).body(page);
                     Ok(ServiceResponse::new(req, res).map_into_right_body())
                 });
