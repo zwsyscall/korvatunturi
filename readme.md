@@ -14,4 +14,4 @@ Actix-web HTTP2.0 performance is not worth the hassle, especially for file uploa
 
 # Configuration?
 There's a config.toml file that might or might not be up to date. If it's not, please check `src/settings.rs` for the settings you can tweak without poking at the source.
-At any rate, the source code is modular and should be easy to pick up. There is as little interconnectivity as possible (to a reasonable extent)
+At any rate, the source code is modular and should be easy to pick up. There is as little interconnectivity between modules as possible (to a reasonable extent)
