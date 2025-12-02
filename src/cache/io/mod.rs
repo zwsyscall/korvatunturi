@@ -1,6 +1,8 @@
 pub(super) mod read;
 pub(super) mod write;
 
+pub use read::FileContent;
+
 #[macro_export]
 macro_rules! signal {
     ($self:ident, $uuid:expr, $action:expr) => {

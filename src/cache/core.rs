@@ -1,3 +1,5 @@
+use crate::{cache::mem::CacheMemory, flush_entry};
+
 use super::{
     entry::{CacheEntry, CacheEntryRow},
     settings::CacheSettings,
@@ -14,7 +16,7 @@ use tokio::{select, time::Interval};
 
 pub(super) enum SignalAction {
     Delete,
-    Save,
+    NewFile,
     #[allow(unused)]
     Accessed,
 }
@@ -38,6 +40,7 @@ pub struct FileCache {
     pub(super) sync: mpsc::Sender<(String, SignalAction)>,
     pub(super) cache_settings: CacheSettings,
     pub max_size: usize,
+    pub cache_mem: Arc<RwLock<CacheMemory>>,
 }
 
 impl FileCache {
@@ -51,7 +54,8 @@ impl FileCache {
                 filename TEXT NOT NULL,
                 expiration_utc TEXT NOT NULL,
                 burn_after_read INTEGER NOT NULL,
-                read_count INTEGER NOT NULL
+                read_count INTEGER NOT NULL,
+                file_size INTEGER NOT NULL
             )
         "#,
         )
@@ -62,7 +66,7 @@ impl FileCache {
         // Initial feed
         let rows: Vec<CacheEntryRow> = sqlx::query_as(
             r#"
-            SELECT uuid, filename, expiration_utc, burn_after_read, read_count
+            SELECT uuid, filename, expiration_utc, burn_after_read, read_count, file_size
             FROM cache
             "#,
         )
@@ -93,11 +97,13 @@ impl FileCache {
 
         // Internal queues for sending and receiving events
         let (alert_sender, mut alert_receiver) = mpsc::channel::<(String, SignalAction)>(3000);
-
         let shared_cache = Arc::new(RwLock::new(cache));
+        let shared_mem = Arc::new(RwLock::new(CacheMemory::new(cache_settings.max_cache_memory.clone())));
+
         // Background routines
         tokio::spawn({
             let cache = shared_cache.clone();
+            let cache_mem = shared_mem.clone();
             let library = library_path.to_string().into();
 
             let mut file_interval: Interval = interval(cache_settings.file_cleanup_interval);
@@ -111,10 +117,16 @@ impl FileCache {
                             maybe = alert_receiver.recv() => {
                                 if let Some((uuid, action)) = maybe {
                                     match action {
+                                        // Delete file from database and disk (expired)
                                         SignalAction::Delete => {
                                             let remove = {
                                                 let mut rw_lock = cache.write().await;
-                                                rw_lock.remove(&uuid).is_some()
+                                                if let Some(mut entry) = rw_lock.remove(&uuid) {
+                                                    flush_entry!(entry, &uuid, cache_settings.in_memory_ttl, cache_mem);
+                                                    true
+                                                } else {
+                                                    false
+                                                }
                                             };
 
                                             if remove {
@@ -123,7 +135,7 @@ impl FileCache {
                                                 }
                                             }
                                         }
-                                        SignalAction::Save => {
+                                        SignalAction::NewFile => {
                                             let lock = cache.read().await;
                                             if let Some(entry) = lock.get(&uuid) {
                                                 if !entry.is_expired() {
@@ -143,7 +155,8 @@ impl FileCache {
                                             }
 
                                             if burn_after_read {
-                                                if rw_lock.remove(&uuid).is_some() {
+                                                if let Some(mut entry) = rw_lock.remove(&uuid) {
+                                                    flush_entry!(entry, &uuid, cache_settings.in_memory_ttl, cache_mem);
                                                     if let Err(e) = Self::drop_item(&uuid, &library, &pool).await {
                                                         warn!("Error dropping file: {:#?}", e)
                                                     }
@@ -172,7 +185,11 @@ impl FileCache {
                                     let mut rw_lock = cache.write().await;
                                     for uuid in &expired_entries {
                                         debug!("Removing {} from cache", &uuid);
-                                        rw_lock.remove(uuid);
+
+                                        // Flushes usage from cache if present
+                                        if let Some(mut entry) = rw_lock.remove(uuid) {
+                                            flush_entry!(entry, &uuid, cache_settings.in_memory_ttl, cache_mem);
+                                        }
                                     }
                                 }
                                 for uuid in &expired_entries {
@@ -187,9 +204,7 @@ impl FileCache {
 
                                 let mut rw_lock = cache.write().await;
                                 for (uuid, entry) in rw_lock.iter_mut() {
-                                    if entry.flush(cache_settings.in_memory_ttl) {
-                                        debug!("Flushed {} from cache", uuid);
-                                    }
+                                    flush_entry!(entry, &uuid, cache_settings.in_memory_ttl, cache_mem);
                                 }
                             }
                     }
@@ -201,8 +216,9 @@ impl FileCache {
             cache: shared_cache,
             sync: alert_sender,
             library: library_path.into(),
-            max_size: cache_settings.maximum_size.clone(),
+            max_size: cache_settings.max_item_size.clone(),
             cache_settings: cache_settings,
+            cache_mem: shared_mem,
         })
     }
 }

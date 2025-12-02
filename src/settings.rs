@@ -1,7 +1,5 @@
-use log::error;
-
 use serde::Deserialize;
-use std::{fs, process::exit};
+use std::fs;
 
 pub fn config_path() -> &'static str {
     #[cfg(target_os = "windows")]
@@ -14,23 +12,18 @@ pub fn config_path() -> &'static str {
     }
 }
 
-impl Configuration {
-    pub fn load(path: &str) -> Self {
-        let content = match fs::read_to_string(path) {
-            Ok(d) => d,
-            Err(e) => {
-                error!("Error reading configration file {} => {}", path, e);
-                exit(1);
-            }
-        };
+#[derive(Debug)]
+pub enum ConfigError {
+    #[allow(dead_code)]
+    IoError(std::io::Error),
+    #[allow(dead_code)]
+    TomlError(toml::de::Error),
+}
 
-        match toml::from_str::<Configuration>(&content) {
-            Ok(conf) => return conf,
-            Err(e) => {
-                error!("Error parsing configuration file: {}", e);
-                exit(1);
-            }
-        };
+impl Configuration {
+    pub fn load(path: &str) -> Result<Self, ConfigError> {
+        let content = fs::read_to_string(path).map_err(|e| ConfigError::IoError(e))?;
+        toml::from_str::<Configuration>(&content).map_err(|e| ConfigError::TomlError(e))
     }
 }
 
@@ -105,7 +98,10 @@ pub struct CacheConfig {
     pub database_path: String,
 
     #[serde(default = "default_maximum_size")]
-    pub maximum_size: usize,
+    pub max_item_size: usize,
+
+    #[serde(default = "default_maximum_size")]
+    pub max_cache_memory: usize,
 }
 
 impl Default for CacheConfig {
@@ -116,31 +112,31 @@ impl Default for CacheConfig {
             on_disk_ttl: default_file_cleanup_interval(),
             file_cleanup_interval: default_cache_cleanup_interval(),
             database_path: default_database_path(),
-            maximum_size: default_maximum_size(),
+            max_item_size: default_maximum_size(),
+            max_cache_memory: default_max_cache_memory(),
         }
     }
 }
-
 fn default_in_memory_ttl() -> usize {
     30
 }
-
 fn default_on_disk_ttl() -> usize {
     60
 }
-
 fn default_file_cleanup_interval() -> usize {
     10
 }
-
 fn default_cache_cleanup_interval() -> usize {
     5
 }
-
 fn default_database_path() -> String {
     ":memory:".to_string()
 }
-
 fn default_maximum_size() -> usize {
+    // 200 mb
     200_000_000
+}
+fn default_max_cache_memory() -> usize {
+    // 10 gb
+    10_000_000_000
 }

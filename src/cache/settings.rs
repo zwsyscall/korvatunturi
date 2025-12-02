@@ -7,7 +7,8 @@ pub struct CacheSettings {
     pub on_disk_ttl: Duration,
     pub file_cleanup_interval: Duration,
     pub database_path: String,
-    pub maximum_size: usize,
+    pub max_item_size: usize,
+    pub max_cache_memory: usize,
 }
 
 impl Default for CacheSettings {
@@ -18,7 +19,8 @@ impl Default for CacheSettings {
             file_cleanup_interval: Duration::from_secs(10),
             cache_cleanup_interval: Duration::from_secs(5),
             database_path: ":memory:".to_string(),
-            maximum_size: 200_000_000,
+            max_item_size: 200_000_000,
+            max_cache_memory: 200_000_000_000,
         }
     }
 }
@@ -31,7 +33,8 @@ impl From<&crate::settings::CacheConfig> for CacheSettings {
             on_disk_ttl: Duration::from_secs(conf.on_disk_ttl as u64),
             file_cleanup_interval: Duration::from_secs(conf.file_cleanup_interval as u64),
             database_path: conf.database_path.clone(),
-            maximum_size: conf.maximum_size,
+            max_item_size: conf.max_item_size,
+            max_cache_memory: conf.max_cache_memory,
         }
     }
 }

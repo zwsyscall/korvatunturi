@@ -3,14 +3,14 @@ use crate::{cache::entry::FileOptions, signal};
 use super::super::{
     core::{FileCache, FileCacheError, SignalAction},
     entry::CacheEntry,
+    instant_to_datetime,
 };
-use chrono::Utc;
 use log::{debug, error};
 use std::io;
-use std::time::Duration;
-use std::{path::PathBuf, time::Instant};
+use std::path::PathBuf;
 use tokio::fs::remove_file;
 use tokio::fs::write;
+use tokio::time::Duration;
 use uuid::Uuid;
 
 /// Write
@@ -43,26 +43,20 @@ impl FileCache {
     }
 
     pub async fn push_to_db(pool: &sqlx::Pool<sqlx::Sqlite>, uuid: &str, entry: &CacheEntry) -> Result<(), sqlx::Error> {
-        let expiration_utc = {
-            let diff = match entry.expiration.checked_duration_since(Instant::now()) {
-                Some(d) => d,
-                None => Duration::from_secs(0),
-            };
-
-            Utc::now() + chrono::Duration::from_std(diff).unwrap_or_default()
-        };
+        let expiration_utc = instant_to_datetime(&entry.expiration);
 
         sqlx::query(
             r#"
-        INSERT INTO cache (uuid, filename, expiration_utc, burn_after_read, read_count)
-        VALUES (?1, ?2, ?3, ?4, ?5)
+        INSERT INTO cache (uuid, filename, expiration_utc, burn_after_read, read_count, file_size)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6)
         "#,
         )
         .bind(uuid)
         .bind(&entry.upload_name)
         .bind(expiration_utc)
         .bind(&entry.burn_after_read)
-        .bind(entry.read_count as i64)
+        .bind(entry.read_count)
+        .bind(entry.len)
         .execute(pool)
         .await?;
 
@@ -73,27 +67,30 @@ impl FileCache {
         // Generate UUID
         let entry_uuid = Uuid::new_v4().to_string();
         let filepath = self.library.join(&entry_uuid);
+        // can panic
+        let len = bytes.len() as i64;
 
         // Write the file
-        if let Err(e) = write(&filepath, &bytes).await {
+        if let Err(e) = write(&filepath, bytes).await {
             if e.kind() == std::io::ErrorKind::StorageFull {
                 return Err(FileCacheError::NoSpaceLeftOnDevice);
             }
             return Err(FileCacheError::IoError(e));
         }
 
-        // Fetch potential settings
+        // Extract entry specific settings
         let ttl = upload_options.expires_in.map(|s| Duration::from_secs(s)).unwrap_or(self.cache_settings.on_disk_ttl);
         let burn_after_read = upload_options.burn_after_read.unwrap_or(false);
 
-        let entry = CacheEntry::new(filename, Some(bytes.into()), burn_after_read, ttl);
+        // This can panic
+        let entry = CacheEntry::new(filename, None, len, burn_after_read, ttl);
 
         {
             let mut cache = self.cache.write().await;
             cache.insert(entry_uuid.to_string(), entry);
         }
 
-        signal!(self, entry_uuid, SignalAction::Save);
+        signal!(self, entry_uuid, SignalAction::NewFile);
         Ok(entry_uuid)
     }
 }

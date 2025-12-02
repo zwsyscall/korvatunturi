@@ -6,8 +6,8 @@ use crate::cache::{FileCache, settings::CacheSettings};
 use crate::settings::Configuration;
 use actix_web::{App, HttpServer, middleware::Logger, web};
 use ipnet::IpNet;
-use log::error;
 use log::{debug, warn};
+use log::{error, info};
 use std::process::exit;
 use std::sync::Arc;
 
@@ -16,14 +16,18 @@ async fn main() -> std::io::Result<()> {
     // Set up logging
     env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
 
-    // Can panic inside configuration load, it's more idioimatic to panic inside there than to create a generic error type to return which to panic on
-    debug!("Loading configuration file.");
-    let config = Configuration::load(settings::config_path());
+    info!("Loading configuration");
+    let config = match Configuration::load(settings::config_path()) {
+        Ok(c) => c,
+        Err(e) => {
+            error!("Error loading configuration: {:#?}", e);
+            exit(1)
+        }
+    };
     debug!("Loaded config: {:#?}", config);
-    let cache_config = CacheSettings::from(&config.cache);
 
     // This can technically delay panic
-    let cache = match FileCache::new(cache_config, &config.cache_path).await {
+    let cache = match FileCache::new(CacheSettings::from(&config.cache), &config.cache_path).await {
         Ok(c) => c,
         Err(e) => {
             error!("Error initializing cache: {}", e);
@@ -40,11 +44,11 @@ async fn main() -> std::io::Result<()> {
         }
     }
 
-    let logging_format = match &config.forward_header {
-        Some(h) => format!("%{{{}}}i \"%r\" %s %b \"%{{Referer}}i\" \"%{{User-Agent}}i\" %T", h),
-        None => "%{r}a \"%r\" %s %b \"%{Referer}i\" \"%{User-Agent}i\" %T".to_string(),
-    };
+    // Set up the actix-web logging format
+    let base = "\"%r\" %s %b \"%{Referer}i\" \"%{User-Agent}i\" %T";
+    let logging_format = if let Some(h) = config.forward_header.as_ref() { format!("%{{{}}}i {}", h, base) } else { format!("%{{r}}a {}", base) };
 
+    // Middlewear & shared data
     let whitelist = api::middleware::IpWhitelist::new(whitelist_list, config.forward_header);
     let server_info = Arc::new((config.service_name, config.source_code));
     let cache_data = web::Data::new(cache);
