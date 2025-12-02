@@ -10,7 +10,7 @@ I decided to write the software myself as this seemed like a relatively easy tas
 No guarantees about this working in the future and / or having backwards compatability. 
 
 # Why no native SSL support despite using actix?
-Actix-web HTTP2.0 performance is not worth the hassle, especially for file uploads. It's somewhere around 300x slower. I adopted to using nginx to terminate the HTTP2.0 connection and using a http1.0 connection between nginx <-> korvatunturi-box to talk to actix.
+Actix-web HTTP2.0 performance is not worth the hassle, especially for file uploads. It's somewhere around 300x slower. I opted for using nginx to terminate the HTTP2.0 connection and using a http1.0 connection between nginx <-> korvatunturi-box to talk to actix.
 
 # Configuration?
 There's a config.toml file that might or might not be up to date. If it's not, please check `src/settings.rs` for the settings you can tweak without poking at the source.
